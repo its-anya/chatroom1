@@ -13,7 +13,7 @@ const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: 'http://localhost:3000', // Change this if deploying frontend
   credentials: true
 }));
 app.use(express.json());
@@ -22,20 +22,19 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
-const __dirname1=path.resolve();
-if (process.env.NODE_ENV==="production"){
-
-  app.use(express.static(path.join(__dirname1,"/client/build")));
-
-  app.get("*",(req,res)=>{
-    res.sendFile(path.resolve(__dirname1,"client","build","index.html"));
+// Serve static files for production
+const __dirname1 = path.resolve();
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname1, "/client/build")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname1, "client", "build", "index.html"));
   });
-}
-else{
-  app.get("/",(req,res)=>{
+} else {
+  app.get("/", (req, res) => {
     res.send("API is running successfully");
   });
 }
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
@@ -54,12 +53,10 @@ const io = socketIO(server, {
 io.on('connection', (socket) => {
   console.log('🔌 New user connected');
 
-  // Handle text messages
   socket.on('chatMessage', (msg) => {
     io.emit('chatMessage', msg);
   });
 
-  // ✅ Handle file messages
   socket.on('chatFile', (msg) => {
     io.emit('chatFile', msg);
   });

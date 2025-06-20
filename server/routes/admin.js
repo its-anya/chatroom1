@@ -3,21 +3,18 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-// Get all users (admin only)
 router.get('/users', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.sendStatus(403);
   const users = await User.find({}, 'username role');
   res.json(users);
 });
 
-// Promote user to admin
 router.put('/make-admin/:id', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.sendStatus(403);
   await User.findByIdAndUpdate(req.params.id, { role: 'admin' });
   res.json({ message: 'User promoted to admin' });
 });
 
-// Delete user
 router.delete('/remove-user/:id', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.sendStatus(403);
   await User.findByIdAndDelete(req.params.id);

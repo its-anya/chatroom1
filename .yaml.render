@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: chatroom1
+    env: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    rootDir: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false     # Set in Render dashboard
+      - key: JWT_SECRET
+        sync: false     # Set in Render dashboard
+    buildFilter:
+      paths:
+        - client/**
+        - server/**
+        - package.json

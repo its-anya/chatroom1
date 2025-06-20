@@ -1,8 +1,8 @@
 const express = require('express');
-const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const router = express.Router();
 
 // Register
 router.post('/register', async (req, res) => {
@@ -13,7 +13,6 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Assign 'admin' role only if no admin exists and credentials match
     let role = 'user';
     const isAdminExists = await User.findOne({ role: 'admin' });
     if (!isAdminExists && username === 'shannu' && password === 'shannu123456') {

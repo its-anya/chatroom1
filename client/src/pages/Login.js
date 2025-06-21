@@ -6,61 +6,94 @@ function Login() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const loginUser = async (e) => {
     e.preventDefault();
+
+    if (!username.trim() || !password.trim()) {
+      alert('Please enter username and password');
+      return;
+    }
+
     try {
-      const res = await fetch('https://chatroom1-6.onrender.com/api/auth/login', {
+      const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-6.onrender.com';
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: username.trim(), password: password.trim() }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || 'Login failed');
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('role', data.role);
+
+        if (data.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/chatroom');
+        }
+      } else {
+        alert(data.error || 'Invalid credentials');
       }
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('username', data.username);
-      localStorage.setItem('role', data.role);
-
-      navigate('/chat');
     } catch (err) {
-      alert(err.message);
+      console.error(err);
+      alert('Server error. Please try again later.');
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-100 to-purple-200">
-      <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-purple-700">Login</h2>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-1">Username</label>
-          <input
-            type="text"
-            required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 via-purple-100 to-blue-100 overflow-hidden">
+      {/* Big background text */}
+      <h1 className="absolute text-[10rem] text-purple-300 opacity-10 font-extrabold tracking-wide select-none z-0">
+        KSC Chatroom
+      </h1>
+
+      {/* Login Form */}
+      <form
+        onSubmit={loginUser}
+        className="relative z-10 bg-white shadow-2xl rounded-xl px-10 py-8 w-full max-w-md border border-purple-200"
+      >
+        <div className="flex justify-center mb-6">
+          <img src="/logo.png" alt="KSC Logo" className="w-20 h-20 rounded-full shadow-md" />
         </div>
-        <div className="mb-6">
-          <label className="block text-gray-700 mb-1">Password</label>
-          <input
-            type="password"
-            required
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+
+        <h2 className="text-3xl font-extrabold mb-6 text-center text-purple-700">
+          Login to Chat
+        </h2>
+
+        <input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Username"
+          className="w-full px-4 py-3 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
+        />
+
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          className="w-full px-4 py-3 mb-6 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400"
+        />
+
         <button
           type="submit"
-          className="w-full bg-purple-600 text-white py-2 rounded-md hover:bg-purple-700"
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-md transition"
         >
           Login
         </button>
+
+        <p className="text-sm mt-4 text-center text-gray-600">
+          Don&apos;t have an account?{' '}
+          <span
+            className="text-blue-600 hover:underline cursor-pointer font-medium"
+            onClick={() => navigate('/register')}
+          >
+            Register here
+          </span>
+        </p>
       </form>
     </div>
   );

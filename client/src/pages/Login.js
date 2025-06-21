@@ -15,7 +15,8 @@ function Login() {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-6.onrender.com';
+const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim(), password: password.trim() }),

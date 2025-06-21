@@ -3,18 +3,19 @@ const http = require('http');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const socketIO = require('socket.io');
-const authRoutes = require('./routes/auth');
-const adminRoutes = require('./routes/admin');
-const Message = require('./models/message'); // ⬅️ New model import
 const path = require('path');
 require('dotenv').config();
+
+const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
+const Message = require('./models/messages');
 
 const app = express();
 const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: 'https://chatroom1-6.onrender.com',
   credentials: true
 }));
 app.use(express.json());
@@ -24,48 +25,43 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log('✅ MongoDB connected'))
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✅ MongoDB connected'))
   .catch((err) => console.error('❌ MongoDB error:', err));
 
-// Socket.IO setup
+// Socket.IO
 const io = socketIO(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: 'https://chatroom1-6.onrender.com',
     methods: ['GET', 'POST']
   }
 });
 
 io.on('connection', (socket) => {
-  console.log('🔌 New user connected');
+  console.log('🔌 User connected');
 
-  // Send previous messages on connect
+  // Send chat history
   Message.find().sort({ timestamp: 1 }).then((messages) => {
     socket.emit('loadMessages', messages);
   });
 
-  // Handle text message
+  // Receive and broadcast messages
   socket.on('chatMessage', async (msg) => {
     const message = new Message({
       sender: msg.sender,
       content: msg.content,
       type: 'text'
     });
-
     await message.save();
     io.emit('chatMessage', message);
   });
 
-  // Handle file message
   socket.on('chatFile', async (msg) => {
     const message = new Message({
       sender: msg.sender,
       content: msg.content,
       type: 'file'
     });
-
     await message.save();
     io.emit('chatFile', message);
   });
@@ -75,7 +71,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start Server
+// Server start
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import Picker from 'emoji-picker-react';
 
-const socket = io(process.env.REACT_APP_SOCKET_URL || 'https://chatroom1-6.onrender.com', {
-  autoConnect: false,
-});
-
+const socket = io('http://localhost:5000', { autoConnect: false });
 
 function ChatRoom() {
   const navigate = useNavigate();
@@ -18,6 +15,10 @@ function ChatRoom() {
   const chatEndRef = useRef(null);
   const socketListenerRef = useRef(false);
 
+  const handleLoadMessages = useCallback((messages) => {
+    setChat(messages);
+  }, []);
+
   const handleIncomingMessage = useCallback((msg) => {
     setChat((prev) => [...prev, msg]);
   }, []);
@@ -27,19 +28,14 @@ function ChatRoom() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const timestamp = new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-
       const messageData = {
-        user: username,
-        time: timestamp,
-        file: {
+        sender: username,
+        content: JSON.stringify({
           name: file.name,
           type: file.type,
           data: reader.result,
-        },
+        }),
+        type: 'file',
       };
 
       socket.emit('chatFile', messageData);
@@ -61,22 +57,25 @@ function ChatRoom() {
     setUsername(uname);
     setRole(userRole);
 
-    if (!socket.connected) {
-      socket.connect();
-    }
-
+    // ✅ Set up listeners BEFORE connecting
     if (!socketListenerRef.current) {
+      socket.on('loadMessages', handleLoadMessages);
       socket.on('chatMessage', handleIncomingMessage);
       socket.on('chatFile', handleIncomingMessage);
       socketListenerRef.current = true;
     }
 
+    if (!socket.connected) {
+      socket.connect(); // ✅ Connect only after listeners
+    }
+
     return () => {
+      socket.off('loadMessages', handleLoadMessages);
       socket.off('chatMessage', handleIncomingMessage);
       socket.off('chatFile', handleIncomingMessage);
       socketListenerRef.current = false;
     };
-  }, [handleIncomingMessage, navigate]);
+  }, [handleIncomingMessage, handleLoadMessages, navigate]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,15 +85,10 @@ function ChatRoom() {
     e.preventDefault();
     if (message.trim() === '') return;
 
-    const timestamp = new Date().toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
     const chatMessage = {
-      text: message,
-      user: username,
-      time: timestamp,
+      sender: username,
+      content: message,
+      type: 'text',
     };
 
     socket.emit('chatMessage', chatMessage);
@@ -106,7 +100,7 @@ function ChatRoom() {
     navigate('/');
   };
 
-  const onEmojiClick = (event, emojiObject) => {
+  const onEmojiClick = (emojiObject) => {
     setMessage((prev) => prev + emojiObject.emoji);
   };
 
@@ -136,10 +130,20 @@ function ChatRoom() {
 
       <div className="bg-white rounded-lg shadow-md p-4 h-[500px] overflow-y-auto mb-4">
         {chat.map((msg, i) => {
-          const isMe = msg.user === username;
+          const isMe = msg.sender === username;
+          let fileData = null;
+
+          if (msg.type === 'file') {
+            try {
+              fileData = JSON.parse(msg.content);
+            } catch (err) {
+              console.error('Invalid file content:', err);
+            }
+          }
+
           return (
             <div
-              key={`${msg.user}-${msg.time}-${i}`}
+              key={msg._id || `${msg.sender}-${msg.timestamp}-${i}`}
               className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}
             >
               <div
@@ -149,27 +153,32 @@ function ChatRoom() {
                     : 'bg-blue-100 text-gray-800'
                 }`}
               >
-                <div className="text-sm font-semibold">{msg.user}</div>
-                {msg.file ? (
-                  msg.file.type.startsWith('image/') ? (
-                    <img src={msg.file.data} alt="shared" className="mt-2 rounded-md" />
-                  ) : msg.file.type.startsWith('video/') ? (
+                <div className="text-sm font-semibold">{msg.sender}</div>
+                {msg.type === 'file' && fileData ? (
+                  fileData.type.startsWith('image/') ? (
+                    <img src={fileData.data} alt="shared" className="mt-2 rounded-md" />
+                  ) : fileData.type.startsWith('video/') ? (
                     <video controls className="mt-2 rounded-md">
-                      <source src={msg.file.data} type={msg.file.type} />
+                      <source src={fileData.data} type={fileData.type} />
                     </video>
                   ) : (
                     <a
-                      href={msg.file.data}
-                      download={msg.file.name}
+                      href={fileData.data}
+                      download={fileData.name}
                       className="text-blue-600 underline mt-2 block"
                     >
-                      📄 {msg.file.name}
+                      📄 {fileData.name}
                     </a>
                   )
                 ) : (
-                  <div className="text-base">{msg.text}</div>
+                  <div className="text-base">{msg.content}</div>
                 )}
-                <div className="text-xs mt-1 opacity-70">{msg.time}</div>
+                <div className="text-xs mt-1 opacity-70">
+                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </div>
               </div>
             </div>
           );
@@ -199,7 +208,7 @@ function ChatRoom() {
 
         {showEmojiPicker && (
           <div className="absolute bottom-20 left-12 z-50">
-            <Picker onEmojiClick={onEmojiClick} />
+            <Picker onEmojiClick={(_, emojiObject) => onEmojiClick(emojiObject)} />
           </div>
         )}
 

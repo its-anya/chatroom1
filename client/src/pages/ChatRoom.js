@@ -5,7 +5,6 @@ import Picker from 'emoji-picker-react';
 
 const socket = io('https://chatroom1-6.onrender.com', { autoConnect: false });
 
-
 function ChatRoom() {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
@@ -58,7 +57,6 @@ function ChatRoom() {
     setUsername(uname);
     setRole(userRole);
 
-    // ✅ Set up listeners BEFORE connecting
     if (!socketListenerRef.current) {
       socket.on('loadMessages', handleLoadMessages);
       socket.on('chatMessage', handleIncomingMessage);
@@ -67,7 +65,7 @@ function ChatRoom() {
     }
 
     if (!socket.connected) {
-      socket.connect(); // ✅ Connect only after listeners
+      socket.connect();
     }
 
     return () => {
@@ -101,6 +99,7 @@ function ChatRoom() {
     navigate('/');
   };
 
+  // ✅ Updated for latest emoji-picker-react v4+
   const onEmojiClick = (emojiObject) => {
     setMessage((prev) => prev + emojiObject.emoji);
   };
@@ -209,7 +208,7 @@ function ChatRoom() {
 
         {showEmojiPicker && (
           <div className="absolute bottom-20 left-12 z-50">
-            <Picker onEmojiClick={(_, emojiObject) => onEmojiClick(emojiObject)} />
+            <Picker onEmojiClick={onEmojiClick} />
           </div>
         )}
 

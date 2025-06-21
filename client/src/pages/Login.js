@@ -16,6 +16,7 @@ function Login() {
 
     try {
       const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-6.onrender.com';
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim(), password: password.trim() }),
@@ -44,7 +45,7 @@ function Login() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 via-purple-100 to-blue-100 overflow-hidden">
-      {/* Big background text */}
+      {/* Background text */}
       <h1 className="absolute text-[10rem] text-purple-300 opacity-10 font-extrabold tracking-wide select-none z-0">
         KSC Chatroom
       </h1>

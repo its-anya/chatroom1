@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import Picker from 'emoji-picker-react';
 
-const socket = io('https://chatroom1-6.onrender.com', { autoConnect: false });
-
+const socket = io('http://localhost:5000', { autoConnect: false });
 
 function ChatRoom() {
   const navigate = useNavigate();

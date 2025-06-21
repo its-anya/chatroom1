@@ -6,7 +6,9 @@ function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const navigate = useNavigate();
-const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-6.onrender.com';
+
+  const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-6.onrender.com';
+
   const registerUser = async (e) => {
     e.preventDefault();
 
@@ -21,7 +23,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-6.onre
     }
 
     try {
-      await fetch(`${API_BASE}/api/auth/register`, {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -35,6 +37,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-6.onre
         alert(data.error || 'Registration failed');
       }
     } catch (err) {
+      console.error(err);
       alert("Something went wrong. Try again.");
     }
   };

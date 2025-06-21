@@ -15,6 +15,7 @@ function ChatRoom() {
   const chatEndRef = useRef(null);
   const socketListenerRef = useRef(false);
 
+  // Load messages on connect
   const handleLoadMessages = useCallback((messages) => {
     setChat(messages);
   }, []);
@@ -57,16 +58,15 @@ function ChatRoom() {
     setUsername(uname);
     setRole(userRole);
 
-    // ✅ Set up listeners BEFORE connecting
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     if (!socketListenerRef.current) {
       socket.on('loadMessages', handleLoadMessages);
       socket.on('chatMessage', handleIncomingMessage);
       socket.on('chatFile', handleIncomingMessage);
       socketListenerRef.current = true;
-    }
-
-    if (!socket.connected) {
-      socket.connect(); // ✅ Connect only after listeners
     }
 
     return () => {
@@ -132,12 +132,11 @@ function ChatRoom() {
         {chat.map((msg, i) => {
           const isMe = msg.sender === username;
           let fileData = null;
-
           if (msg.type === 'file') {
             try {
               fileData = JSON.parse(msg.content);
             } catch (err) {
-              console.error('Invalid file content:', err);
+              console.error('Invalid file data', err);
             }
           }
 

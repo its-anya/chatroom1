@@ -6,7 +6,6 @@ const socketIO = require('socket.io');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const path = require('path');
-require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);

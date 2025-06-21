@@ -5,11 +5,14 @@ const mongoose = require('mongoose');
 const socketIO = require('socket.io');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const Message = require('./models/message'); // ⬅️ New model import
 const path = require('path');
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
 
+// Middleware
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
@@ -20,27 +23,14 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Static frontend in production
-const __dirname1 = path.resolve();
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname1, "/client/build")));
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname1, "client", "build", "index.html"));
-  });
-} else {
-  app.get("/", (req, res) => {
-    res.send("API is running successfully");
-  });
-}
-
-// MongoDB
+// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB error:', err));
+  .catch((err) => console.error('❌ MongoDB error:', err));
 
-// Socket.io
+// Socket.IO setup
 const io = socketIO(server, {
   cors: {
     origin: 'http://localhost:3000',
@@ -51,12 +41,33 @@ const io = socketIO(server, {
 io.on('connection', (socket) => {
   console.log('🔌 New user connected');
 
-  socket.on('chatMessage', (msg) => {
-    io.emit('chatMessage', msg);
+  // Send previous messages on connect
+  Message.find().sort({ timestamp: 1 }).then((messages) => {
+    socket.emit('loadMessages', messages);
   });
 
-  socket.on('chatFile', (msg) => {
-    io.emit('chatFile', msg);
+  // Handle text message
+  socket.on('chatMessage', async (msg) => {
+    const message = new Message({
+      sender: msg.sender,
+      content: msg.content,
+      type: 'text'
+    });
+
+    await message.save();
+    io.emit('chatMessage', message);
+  });
+
+  // Handle file message
+  socket.on('chatFile', async (msg) => {
+    const message = new Message({
+      sender: msg.sender,
+      content: msg.content,
+      type: 'file'
+    });
+
+    await message.save();
+    io.emit('chatFile', message);
   });
 
   socket.on('disconnect', () => {
@@ -64,6 +75,7 @@ io.on('connection', (socket) => {
   });
 });
 
+// Start Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

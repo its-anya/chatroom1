@@ -5,9 +5,8 @@ const mongoose = require('mongoose');
 const socketIO = require('socket.io');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
-const Message = require('./models/messages'); // ⬅️ New model import
+const Message = require('./models/message'); // ⬅️ New model import
 const path = require('path');
-require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);

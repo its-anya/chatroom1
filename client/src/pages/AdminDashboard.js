@@ -6,7 +6,7 @@ function AdminDashboard() {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/admin/users', {
+      const res = await fetch('https://chatroom1-6.onrender.com/api/admin/users', {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -23,14 +23,13 @@ function AdminDashboard() {
 
   const promoteUser = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/make-admin/${id}`, {
+      await fetch(`https://chatroom1-6.onrender.com/api/admin/make-admin/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error('Promotion failed');
       fetchUsers();
     } catch (err) {
       console.error(err);
@@ -40,14 +39,13 @@ function AdminDashboard() {
 
   const removeUser = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/remove-user/${id}`, {
+      await fetch(`https://chatroom1-6.onrender.com/api/admin/remove-user/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error('Deletion failed');
       fetchUsers();
     } catch (err) {
       console.error(err);

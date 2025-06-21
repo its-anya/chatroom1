@@ -1,14 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-6.onrender.com';
-
 function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const token = localStorage.getItem('token');
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/users`, {
+      const res = await fetch('http://localhost:5000/api/admin/users', {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -25,7 +23,7 @@ function AdminDashboard() {
 
   const promoteUser = async (id) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/make-admin/${id}`, {
+      const res = await fetch(`http://localhost:5000/api/admin/make-admin/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -42,7 +40,7 @@ function AdminDashboard() {
 
   const removeUser = async (id) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/remove-user/${id}`, {
+      const res = await fetch(`http://localhost:5000/api/admin/remove-user/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

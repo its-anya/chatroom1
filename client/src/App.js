@@ -1,10 +1,8 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatRoom from './pages/ChatRoom';
 import AdminDashboard from './pages/AdminDashboard';
-
 
 function App() {
   return (
@@ -14,6 +12,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/chatroom" element={<ChatRoom />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        {/* Optional: fallback route */}
+        <Route path="*" element={<Login />} />
       </Routes>
     </Router>
   );

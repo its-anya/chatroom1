@@ -12,8 +12,6 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/chatroom" element={<ChatRoom />} />
         <Route path="/admin" element={<AdminDashboard />} />
-        {/* Optional: fallback route */}
-        <Route path="*" element={<Login />} />
       </Routes>
     </Router>
   );

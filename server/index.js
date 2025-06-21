@@ -4,6 +4,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const socketIO = require('socket.io');
 const path = require('path');
+// Routes
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const Message = require('./models/messages');
@@ -13,43 +14,52 @@ const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
-  origin: 'https://chatroom1-6.onrender.com',
-  credentials: true
+  origin: '*', // Use "*" or replace with frontend domain if needed
+  credentials: true,
 }));
 app.use(express.json());
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB connected'))
-  .catch((err) => console.error('❌ MongoDB error:', err));
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// Socket.IO
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Serve frontend from React build folder
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// Catch-all for client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build/index.html'));
+});
+
+// Socket.IO setup
 const io = socketIO(server, {
   cors: {
-    origin: 'https://chatroom1-6.onrender.com',
+    origin: '*',
     methods: ['GET', 'POST']
   }
 });
 
 io.on('connection', (socket) => {
-  console.log('🔌 User connected');
+  console.log('🔌 New user connected');
 
-  // Send chat history
+  // Send previous messages
   Message.find().sort({ timestamp: 1 }).then((messages) => {
     socket.emit('loadMessages', messages);
   });
 
-  // Receive and broadcast messages
+  // Handle chat messages
   socket.on('chatMessage', async (msg) => {
     const message = new Message({
       sender: msg.sender,
       content: msg.content,
       type: 'text'
     });
+
     await message.save();
     io.emit('chatMessage', message);
   });
@@ -60,6 +70,7 @@ io.on('connection', (socket) => {
       content: msg.content,
       type: 'file'
     });
+
     await message.save();
     io.emit('chatFile', message);
   });
@@ -69,7 +80,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Server start
+// Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

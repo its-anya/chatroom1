@@ -6,7 +6,7 @@ function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const navigate = useNavigate();
-
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-6.onrender.com';
   const registerUser = async (e) => {
     e.preventDefault();
 
@@ -21,7 +21,7 @@ function Register() {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })

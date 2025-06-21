@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const MessageSchema = new mongoose.Schema({
   sender: {
-    type: String,
+    type: String,  // Or use ObjectId and reference User if needed
     required: true
   },
   content: {

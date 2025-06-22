@@ -46,10 +46,12 @@ const io = socketIO(server, {
 io.on('connection', (socket) => {
   console.log('🔌 User connected');
 
+  // Load all messages for the user who just connected
   Message.find().sort({ timestamp: 1 }).then(messages => {
     socket.emit('loadMessages', messages);
   });
 
+  // Handle text message
   socket.on('chatMessage', async (msg) => {
     const message = new Message({
       sender: msg.sender,
@@ -60,6 +62,7 @@ io.on('connection', (socket) => {
     io.emit('chatMessage', message);
   });
 
+  // Handle file message
   socket.on('chatFile', async (msg) => {
     const message = new Message({
       sender: msg.sender,
@@ -68,6 +71,16 @@ io.on('connection', (socket) => {
     });
     await message.save();
     io.emit('chatFile', message);
+  });
+
+  // ✅ Handle delete message
+  socket.on('deleteMessage', async (id) => {
+    try {
+      await Message.findByIdAndDelete(id);
+      io.emit('deleteMessage', id); // broadcast to all users to remove the message
+    } catch (err) {
+      console.error('❌ Delete error:', err);
+    }
   });
 
   socket.on('disconnect', () => {

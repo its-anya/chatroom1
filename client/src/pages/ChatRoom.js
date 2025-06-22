@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import Picker from 'emoji-picker-react';
+import { FaTrashAlt } from 'react-icons/fa';
 
 const socket = io('https://chatroom1-6.onrender.com', { autoConnect: false });
 
@@ -15,17 +16,24 @@ function ChatRoom() {
   const chatEndRef = useRef(null);
   const socketListenerRef = useRef(false);
 
+  // Load messages once
   const handleLoadMessages = useCallback((messages) => {
     setChat(messages);
   }, []);
 
+  // Add message to chat
   const handleIncomingMessage = useCallback((msg) => {
     setChat((prev) => [...prev, msg]);
   }, []);
 
+  // Remove message from chat on delete
+  const handleDeletedMessage = useCallback((messageId) => {
+    setChat((prev) => prev.filter((msg) => msg._id !== messageId));
+  }, []);
+
+  // Upload files
   const handleFileUpload = (file) => {
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = () => {
       const messageData = {
@@ -37,13 +45,12 @@ function ChatRoom() {
         }),
         type: 'file',
       };
-
       socket.emit('chatFile', messageData);
     };
-
     reader.readAsDataURL(file);
   };
 
+  // Setup socket listeners
   useEffect(() => {
     const token = localStorage.getItem('token');
     const uname = localStorage.getItem('username');
@@ -61,42 +68,43 @@ function ChatRoom() {
       socket.on('loadMessages', handleLoadMessages);
       socket.on('chatMessage', handleIncomingMessage);
       socket.on('chatFile', handleIncomingMessage);
-      socket.on('deleteMessage', (deletedId) => {
-        setChat((prev) => prev.filter((msg) => msg._id !== deletedId));
-      });
-
+      socket.on('deleteMessage', handleDeletedMessage);
       socketListenerRef.current = true;
     }
 
-    if (!socket.connected) {
-      socket.connect();
-    }
+    if (!socket.connected) socket.connect();
 
     return () => {
       socket.off('loadMessages', handleLoadMessages);
       socket.off('chatMessage', handleIncomingMessage);
       socket.off('chatFile', handleIncomingMessage);
-      socket.off('deleteMessage');
+      socket.off('deleteMessage', handleDeletedMessage);
       socketListenerRef.current = false;
     };
-  }, [handleIncomingMessage, handleLoadMessages, navigate]);
+  }, [handleIncomingMessage, handleLoadMessages, handleDeletedMessage, navigate]);
 
+  // Scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chat]);
 
   const sendMessage = (e) => {
     e.preventDefault();
-    if (message.trim() === '') return;
-
+    if (!message.trim()) return;
     const chatMessage = {
       sender: username,
-      content: message,
+      content: message.trim(),
       type: 'text',
     };
-
     socket.emit('chatMessage', chatMessage);
     setMessage('');
+  };
+
+  const deleteMessage = (messageId) => {
+    const confirm = window.confirm('Are you sure you want to delete this message?');
+    if (confirm) {
+      socket.emit('deleteMessage', messageId);
+    }
   };
 
   const handleLogout = () => {
@@ -106,10 +114,6 @@ function ChatRoom() {
 
   const onEmojiClick = (emojiObject) => {
     setMessage((prev) => prev + emojiObject.emoji);
-  };
-
-  const handleDeleteMessage = (id) => {
-    socket.emit('deleteMessage', id);
   };
 
   return (
@@ -155,25 +159,11 @@ function ChatRoom() {
               className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}
             >
               <div
-                className={`p-3 max-w-xs rounded-lg shadow-md relative ${
-                  isMe
-                    ? 'bg-purple-500 text-white text-right'
-                    : 'bg-blue-100 text-gray-800'
+                className={`relative p-3 max-w-xs rounded-lg shadow-md ${
+                  isMe ? 'bg-purple-500 text-white text-right' : 'bg-blue-100 text-gray-800'
                 }`}
               >
-                <div className="flex justify-between items-center">
-                  <div className="text-sm font-semibold">{msg.sender}</div>
-                  {(isMe || role === 'admin') && (
-                    <button
-                      onClick={() => handleDeleteMessage(msg._id)}
-                      className="text-xs text-red-200 hover:text-white ml-2"
-                      title="Delete"
-                    >
-                      🗑
-                    </button>
-                  )}
-                </div>
-
+                <div className="text-sm font-semibold">{msg.sender}</div>
                 {msg.type === 'file' && fileData ? (
                   fileData.type.startsWith('image/') ? (
                     <img src={fileData.data} alt="shared" className="mt-2 rounded-md" />
@@ -193,13 +183,23 @@ function ChatRoom() {
                 ) : (
                   <div className="text-base">{msg.content}</div>
                 )}
-
                 <div className="text-xs mt-1 opacity-70">
                   {new Date(msg.timestamp).toLocaleTimeString([], {
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
                 </div>
+
+                {/* 🗑️ Delete icon only for sender */}
+                {isMe && (
+                  <button
+                    onClick={() => deleteMessage(msg._id)}
+                    className="absolute top-1 right-1 text-white opacity-60 hover:opacity-100"
+                    title="Delete message"
+                  >
+                    <FaTrashAlt />
+                  </button>
+                )}
               </div>
             </div>
           );

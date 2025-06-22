@@ -16,7 +16,7 @@ const server = http.createServer(app);
 // ✅ ALLOW frontend to access backend APIs and socket
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://chatroom1-6.onrender.com' // ✅ Your deployed frontend
+  'https://chatroom1-6.onrender.com'
 ];
 
 app.use(cors({
@@ -46,12 +46,12 @@ const io = socketIO(server, {
 io.on('connection', (socket) => {
   console.log('🔌 User connected');
 
-  // Load all messages for the user who just connected
+  // Send all existing messages on connection
   Message.find().sort({ timestamp: 1 }).then(messages => {
     socket.emit('loadMessages', messages);
   });
 
-  // Handle text message
+  // Handle new text message
   socket.on('chatMessage', async (msg) => {
     const message = new Message({
       sender: msg.sender,
@@ -62,7 +62,7 @@ io.on('connection', (socket) => {
     io.emit('chatMessage', message);
   });
 
-  // Handle file message
+  // Handle file upload message
   socket.on('chatFile', async (msg) => {
     const message = new Message({
       sender: msg.sender,
@@ -73,13 +73,13 @@ io.on('connection', (socket) => {
     io.emit('chatFile', message);
   });
 
-  // ✅ Handle delete message
-  socket.on('deleteMessage', async (id) => {
+  // ✅ Handle message deletion
+  socket.on('deleteMessage', async (messageId) => {
     try {
-      await Message.findByIdAndDelete(id);
-      io.emit('deleteMessage', id); // broadcast to all users to remove the message
-    } catch (err) {
-      console.error('❌ Delete error:', err);
+      await Message.findByIdAndDelete(messageId);
+      io.emit('deleteMessage', messageId); // Notify all clients
+    } catch (error) {
+      console.error('❌ Error deleting message:', error);
     }
   });
 
@@ -88,11 +88,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// ✅ SERVE React frontend (after `npm run build` inside /client)
+// ✅ Serve React frontend
 const clientBuildPath = path.join(__dirname, '..', 'client', 'build');
 app.use(express.static(clientBuildPath));
 
-// ✅ Route all unknown paths to React index.html (for React Router)
+// ✅ React Router catch-all route
 app.get('*', (req, res) => {
   res.sendFile(path.join(clientBuildPath, 'index.html'));
 });

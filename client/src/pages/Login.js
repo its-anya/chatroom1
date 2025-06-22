@@ -25,15 +25,13 @@ function Login() {
       const data = await res.json();
 
       if (res.ok) {
+        // Store user data in local storage
         localStorage.setItem('token', data.token);
         localStorage.setItem('username', data.username);
         localStorage.setItem('role', data.role);
 
-        if (data.role === 'admin') {
-          navigate('/admin');
-        } else {
-          navigate('/chatroom');
-        }
+        // ✅ Redirect everyone to chatroom first
+        navigate('/chatroom');
       } else {
         alert(data.error || 'Invalid credentials');
       }

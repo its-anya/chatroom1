@@ -61,6 +61,10 @@ function ChatRoom() {
       socket.on('loadMessages', handleLoadMessages);
       socket.on('chatMessage', handleIncomingMessage);
       socket.on('chatFile', handleIncomingMessage);
+      socket.on('deleteMessage', (deletedId) => {
+        setChat((prev) => prev.filter((msg) => msg._id !== deletedId));
+      });
+
       socketListenerRef.current = true;
     }
 
@@ -72,6 +76,7 @@ function ChatRoom() {
       socket.off('loadMessages', handleLoadMessages);
       socket.off('chatMessage', handleIncomingMessage);
       socket.off('chatFile', handleIncomingMessage);
+      socket.off('deleteMessage');
       socketListenerRef.current = false;
     };
   }, [handleIncomingMessage, handleLoadMessages, navigate]);
@@ -99,9 +104,12 @@ function ChatRoom() {
     navigate('/');
   };
 
-  // ✅ Updated for latest emoji-picker-react v4+
   const onEmojiClick = (emojiObject) => {
     setMessage((prev) => prev + emojiObject.emoji);
+  };
+
+  const handleDeleteMessage = (id) => {
+    socket.emit('deleteMessage', id);
   };
 
   return (
@@ -147,13 +155,25 @@ function ChatRoom() {
               className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}
             >
               <div
-                className={`p-3 max-w-xs rounded-lg shadow-md ${
+                className={`p-3 max-w-xs rounded-lg shadow-md relative ${
                   isMe
                     ? 'bg-purple-500 text-white text-right'
                     : 'bg-blue-100 text-gray-800'
                 }`}
               >
-                <div className="text-sm font-semibold">{msg.sender}</div>
+                <div className="flex justify-between items-center">
+                  <div className="text-sm font-semibold">{msg.sender}</div>
+                  {(isMe || role === 'admin') && (
+                    <button
+                      onClick={() => handleDeleteMessage(msg._id)}
+                      className="text-xs text-red-200 hover:text-white ml-2"
+                      title="Delete"
+                    >
+                      🗑
+                    </button>
+                  )}
+                </div>
+
                 {msg.type === 'file' && fileData ? (
                   fileData.type.startsWith('image/') ? (
                     <img src={fileData.data} alt="shared" className="mt-2 rounded-md" />
@@ -173,6 +193,7 @@ function ChatRoom() {
                 ) : (
                   <div className="text-base">{msg.content}</div>
                 )}
+
                 <div className="text-xs mt-1 opacity-70">
                   {new Date(msg.timestamp).toLocaleTimeString([], {
                     hour: '2-digit',

@@ -16,22 +16,18 @@ function ChatRoom() {
   const chatEndRef = useRef(null);
   const socketListenerRef = useRef(false);
 
-  // Load messages once
   const handleLoadMessages = useCallback((messages) => {
     setChat(messages);
   }, []);
 
-  // Add message to chat
   const handleIncomingMessage = useCallback((msg) => {
     setChat((prev) => [...prev, msg]);
   }, []);
 
-  // Remove message from chat on delete
   const handleDeletedMessage = useCallback((messageId) => {
     setChat((prev) => prev.filter((msg) => msg._id !== messageId));
   }, []);
 
-  // Upload files
   const handleFileUpload = (file) => {
     if (!file) return;
     const reader = new FileReader();
@@ -50,7 +46,6 @@ function ChatRoom() {
     reader.readAsDataURL(file);
   };
 
-  // Setup socket listeners
   useEffect(() => {
     const token = localStorage.getItem('token');
     const uname = localStorage.getItem('username');
@@ -83,7 +78,6 @@ function ChatRoom() {
     };
   }, [handleIncomingMessage, handleLoadMessages, handleDeletedMessage, navigate]);
 
-  // Scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chat]);
@@ -118,6 +112,7 @@ function ChatRoom() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-200 p-4">
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-3xl font-bold text-purple-700 flex items-center gap-2">
           <img src="/logo.png" alt="logo" className="w-8 h-8" /> KSC Chat
@@ -140,9 +135,12 @@ function ChatRoom() {
         </div>
       </div>
 
+      {/* MESSAGES */}
       <div className="bg-white rounded-lg shadow-md p-4 h-[500px] overflow-y-auto mb-4">
         {chat.map((msg, i) => {
           const isMe = msg.sender === username;
+          const isAdmin = role === 'admin';
+          const canDelete = isMe || isAdmin;
           let fileData = null;
 
           if (msg.type === 'file') {
@@ -164,6 +162,7 @@ function ChatRoom() {
                 }`}
               >
                 <div className="text-sm font-semibold">{msg.sender}</div>
+
                 {msg.type === 'file' && fileData ? (
                   fileData.type.startsWith('image/') ? (
                     <img src={fileData.data} alt="shared" className="mt-2 rounded-md" />
@@ -183,6 +182,7 @@ function ChatRoom() {
                 ) : (
                   <div className="text-base">{msg.content}</div>
                 )}
+
                 <div className="text-xs mt-1 opacity-70">
                   {new Date(msg.timestamp).toLocaleTimeString([], {
                     hour: '2-digit',
@@ -190,11 +190,11 @@ function ChatRoom() {
                   })}
                 </div>
 
-                {/* 🗑️ Delete icon only for sender */}
-                {isMe && (
+                {/* 🗑️ Delete icon for sender or admin */}
+                {canDelete && (
                   <button
                     onClick={() => deleteMessage(msg._id)}
-                    className="absolute top-1 right-1 text-white opacity-60 hover:opacity-100"
+                    className="absolute top-1 right-1 text-white opacity-70 hover:opacity-100"
                     title="Delete message"
                   >
                     <FaTrashAlt />
@@ -207,6 +207,7 @@ function ChatRoom() {
         <div ref={chatEndRef}></div>
       </div>
 
+      {/* SEND MESSAGE BAR */}
       <form onSubmit={sendMessage} className="flex items-center gap-2 relative">
         <label htmlFor="fileInput" className="cursor-pointer">
           <img src="/clip-icon.png" alt="Attach" className="w-6 h-6" />

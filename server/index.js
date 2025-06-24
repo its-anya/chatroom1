@@ -3,6 +3,8 @@ const http = require('http');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const socketIO = require('socket.io');
+const path = require('path');
+require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -14,7 +16,7 @@ const server = http.createServer(app);
 // Allow both local and deployed frontend
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://chatroom1-6.onrender.com'// <-- add your deployed frontend domain here if different
+  'https://chatroom1-6.onrender.com'
 ];
 
 app.use(cors({
@@ -24,7 +26,7 @@ app.use(cors({
 app.use(express.json());
 
 // Health check for Render
-app.get('/', (req, res) => res.send('Server is running!'));
+app.get('/api/health', (req, res) => res.send('Server is running!'));
 
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB connected'))
@@ -32,6 +34,14 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// For any route not handled by your APIs, serve the React index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+});
 
 const io = socketIO(server, {
   cors: {

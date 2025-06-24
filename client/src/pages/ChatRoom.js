@@ -22,7 +22,7 @@ function ChatRoom() {
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [inCall, setInCall] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
-  const [currentCallPeer, setCurrentCallPeer] = useState(null); // Track peer
+  const [currentCallPeer, setCurrentCallPeer] = useState(null);
 
   // Load messages and users
   const handleLoadMessages = useCallback((messages) => {
@@ -75,7 +75,6 @@ function ChatRoom() {
       remoteAudioRef.current.srcObject.getTracks().forEach(track => track.stop());
       remoteAudioRef.current.srcObject = null;
     }
-    // Only emit if we know the peer
     if (currentCallPeer) {
       socketRef.current.emit('end-call', { targetId: currentCallPeer });
     }
@@ -83,7 +82,6 @@ function ChatRoom() {
   }, [currentCallPeer]);
 
   // WebRTC Call Handlers
-  // Only send offer, don't open audio until accepted
   const startCall = async (targetUsername) => {
     try {
       setInCall(true);
@@ -123,7 +121,7 @@ function ChatRoom() {
     setCurrentCallPeer(incomingCall.from);
     setIncomingCall(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); // audio only
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localAudioRef.current.srcObject = stream;
       peerRef.current = new window.RTCPeerConnection();
 
@@ -175,7 +173,7 @@ function ChatRoom() {
     if (peerRef.current) {
       await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); // audio only
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         localAudioRef.current.srcObject = stream;
         stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
       } catch (err) {
@@ -217,7 +215,8 @@ function ChatRoom() {
     setUsername(uname);
     setRole(userRole);
 
-    const socket = io('https://chatroom1-6.onrender.com', { autoConnect: false });
+    socketRef.current = io('https://chatroom1-6.onrender.com', { autoConnect: false });
+    socketRef.current.connect();
 
     socketRef.current.on('connect', () => {
       socketRef.current.emit('register-user', uname);

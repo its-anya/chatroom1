@@ -88,6 +88,11 @@ function ChatRoom() {
       setCurrentCallPeer(targetUsername);
       peerRef.current = new window.RTCPeerConnection();
 
+      // Get local audio stream and add to peer connection
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localAudioRef.current.srcObject = stream;
+      stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
+
       peerRef.current.onicecandidate = (e) => {
         if (e.candidate) {
           socketRef.current.emit('ice-candidate', { targetId: targetUsername, candidate: e.candidate });
@@ -173,9 +178,11 @@ function ChatRoom() {
     if (peerRef.current) {
       await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        localAudioRef.current.srcObject = stream;
-        stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
+        if (!localAudioRef.current.srcObject) {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          localAudioRef.current.srcObject = stream;
+          stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
+        }
       } catch (err) {
         alert('Could not open microphone: ' + err.message);
         endCall();
@@ -198,6 +205,7 @@ function ChatRoom() {
     if (!socketRef.current) return;
     socketRef.current.on('end-call', () => {
       endCall();
+      alert('The other user ended the call.');
     });
     return () => {
       if (socketRef.current) socketRef.current.off('end-call');
@@ -348,7 +356,7 @@ function ChatRoom() {
 
       <div className="flex gap-4 justify-center mb-4">
         {/* Audio elements for call */}
-        <audio ref={localAudioRef} autoPlay muted hidden={!localAudioRef.current?.srcObject} />
+        <audio ref={localAudioRef} autoPlay muted={false} hidden={!localAudioRef.current?.srcObject} />
         <audio ref={remoteAudioRef} autoPlay hidden={!remoteAudioRef.current?.srcObject} />
       </div>
 

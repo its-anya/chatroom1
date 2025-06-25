@@ -4,7 +4,6 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const socketIO = require('socket.io');
 const path = require('path');
-require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -13,10 +12,10 @@ const Message = require('./models/messages');
 const app = express();
 const server = http.createServer(app);
 
-// Allow both local and deployed frontend
+// Add your deployed frontend URL here for production!
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://chatroom1-6.onrender.com'
+  'https://chatroom1-6.onrender.com' // <-- replace with your deployed frontend URL
 ];
 
 app.use(cors({
@@ -25,9 +24,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Health check for Render
-app.get('/api/health', (req, res) => res.send('Server is running!'));
-
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB error:', err));
@@ -35,7 +31,7 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Serve static files from the React app
+// Serve static files from the React app (for deployment)
 app.use(express.static(path.join(__dirname, '../client/build')));
 
 // For any route not handled by your APIs, serve the React index.html
@@ -58,7 +54,7 @@ io.on('connection', (socket) => {
 
   socket.on('register-user', (username) => {
     users.set(username, socket.id);
-    socket.username = username; // Save for disconnect and signaling
+    socket.username = username;
     console.log(`✅ Registered user ${username} with socket ID ${socket.id}`);
   });
 
@@ -112,6 +108,7 @@ io.on('connection', (socket) => {
   // --- Audio Call Signaling Events ---
   socket.on('call-user', ({ targetId, offer, caller }) => {
     const targetSocket = users.get(targetId);
+    console.log(`Call requested from ${socket.username} to ${targetId}`);
     if (targetSocket) {
       io.to(targetSocket).emit('incoming-call', { from: socket.username, offer, caller: socket.username });
     }

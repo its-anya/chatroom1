@@ -3,7 +3,8 @@ const http = require('http');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const socketIO = require('socket.io');
-
+const path = require('path');
+require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -36,6 +37,12 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Serve frontend build (if deploying client and server together)
+app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
+});
+
 const io = socketIO(server, {
   cors: {
     origin: allowedOrigins,
@@ -48,17 +55,13 @@ const users = new Map();
 
 function emitOnlineUsers() {
   const online = Array.from(users.keys());
-  console.log('Emitting online users:', online);
   io.emit('online-users', online);
 }
 
 io.on('connection', (socket) => {
-  console.log('🔌 User connected:', socket.id);
-
   socket.on('register-user', (username) => {
     users.set(username, socket.id);
     socket.username = username;
-    console.log(`✅ Registered user ${username} with socket ID ${socket.id}`);
     emitOnlineUsers();
   });
 
@@ -108,7 +111,6 @@ io.on('connection', (socket) => {
   // --- Audio/Video Call Signaling Events ---
   socket.on('call-user', ({ targetId, offer, caller, isVideo }) => {
     const targetSocket = users.get(targetId);
-    console.log(`Call requested from ${socket.username} to ${targetId} (video: ${!!isVideo})`);
     if (targetSocket) {
       io.to(targetSocket).emit('incoming-call', {
         from: socket.username,
@@ -116,8 +118,6 @@ io.on('connection', (socket) => {
         caller: socket.username,
         isVideo: !!isVideo
       });
-    } else {
-      console.log(`❌ Target user ${targetId} not found for call`);
     }
   });
 
@@ -153,7 +153,6 @@ io.on('connection', (socket) => {
     for (const [user, id] of users.entries()) {
       if (id === socket.id) {
         users.delete(user);
-        console.log(`❌ ${user} disconnected`);
         emitOnlineUsers();
         break;
       }

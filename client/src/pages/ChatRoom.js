@@ -15,21 +15,23 @@ function ChatRoom() {
   const chatEndRef = useRef(null);
   const socketRef = useRef(null);
 
+  // --- Video call additions ---
   const [showCallOptions, setShowCallOptions] = useState(false);
+  const [callType, setCallType] = useState('audio'); // 'audio' or 'video'
   const peerRef = useRef();
   const localAudioRef = useRef();
   const remoteAudioRef = useRef();
+  const localVideoRef = useRef();
+  const remoteVideoRef = useRef();
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [inCall, setInCall] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [currentCallPeer, setCurrentCallPeer] = useState(null);
 
-  // Load messages and users
+  // Load messages
   const handleLoadMessages = useCallback((messages) => {
     setChat(messages);
-    const users = [...new Set(messages.map(m => m.sender))];
-    setConnectedUsers(users.filter(u => u !== username));
-  }, [username]);
+  }, []);
 
   // Handle incoming chat or file message
   const handleIncomingMessage = useCallback((msg) => {
@@ -75,20 +77,28 @@ function ChatRoom() {
       remoteAudioRef.current.srcObject.getTracks().forEach(track => track.stop());
       remoteAudioRef.current.srcObject = null;
     }
+    if (localVideoRef.current && localVideoRef.current.srcObject) {
+      localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      localVideoRef.current.srcObject = null;
+    }
+    if (remoteVideoRef.current && remoteVideoRef.current.srcObject) {
+      remoteVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      remoteVideoRef.current.srcObject = null;
+    }
     if (currentCallPeer) {
       socketRef.current.emit('end-call', { targetId: currentCallPeer });
     }
     setCurrentCallPeer(null);
   }, [currentCallPeer]);
 
-  // WebRTC Call Handlers
+  // --- AUDIO CALL ---
   const startCall = async (targetUsername) => {
     try {
       setInCall(true);
       setCurrentCallPeer(targetUsername);
+      setCallType('audio');
       peerRef.current = new window.RTCPeerConnection();
 
-      // Get local audio stream and add to peer connection
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localAudioRef.current.srcObject = stream;
       stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
@@ -100,13 +110,13 @@ function ChatRoom() {
       };
 
       peerRef.current.ontrack = (e) => {
-        remoteAudioRef.current.srcObject = e.streams[0];
+        if (remoteAudioRef.current) remoteAudioRef.current.srcObject = e.streams[0];
       };
 
       const offer = await peerRef.current.createOffer();
       await peerRef.current.setLocalDescription(offer);
 
-      socketRef.current.emit('call-user', { targetId: targetUsername, offer, caller: username });
+      socketRef.current.emit('call-user', { targetId: targetUsername, offer, caller: username, isVideo: false });
     } catch (err) {
       alert('Could not start call: ' + err.message);
       setInCall(false);
@@ -114,9 +124,44 @@ function ChatRoom() {
     }
   };
 
+  // --- VIDEO CALL ---
+  const startVideoCall = async (targetUsername) => {
+    try {
+      setInCall(true);
+      setCurrentCallPeer(targetUsername);
+      setCallType('video');
+      peerRef.current = new window.RTCPeerConnection();
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      localAudioRef.current.srcObject = stream;
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
+
+      peerRef.current.onicecandidate = (e) => {
+        if (e.candidate) {
+          socketRef.current.emit('ice-candidate', { targetId: targetUsername, candidate: e.candidate });
+        }
+      };
+
+      peerRef.current.ontrack = (e) => {
+        if (remoteAudioRef.current) remoteAudioRef.current.srcObject = e.streams[0];
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0];
+      };
+
+      const offer = await peerRef.current.createOffer();
+      await peerRef.current.setLocalDescription(offer);
+
+      socketRef.current.emit('call-user', { targetId: targetUsername, offer, caller: username, isVideo: true });
+    } catch (err) {
+      alert('Could not start video call: ' + err.message);
+      setInCall(false);
+      setCurrentCallPeer(null);
+    }
+  };
+
   // Show popup on incoming call
-  const handleIncomingCall = useCallback(({ from, offer, caller }) => {
-    setIncomingCall({ from, offer, caller });
+  const handleIncomingCall = useCallback(({ from, offer, caller, isVideo }) => {
+    setIncomingCall({ from, offer, caller, isVideo });
   }, []);
 
   // Accept call from popup
@@ -124,10 +169,15 @@ function ChatRoom() {
     if (!incomingCall) return;
     setInCall(true);
     setCurrentCallPeer(incomingCall.from);
+    setCallType(incomingCall.isVideo ? 'video' : 'audio');
     setIncomingCall(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: incomingCall.isVideo ? true : false
+      });
       localAudioRef.current.srcObject = stream;
+      if (incomingCall.isVideo && localVideoRef.current) localVideoRef.current.srcObject = stream;
       peerRef.current = new window.RTCPeerConnection();
 
       stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
@@ -139,10 +189,11 @@ function ChatRoom() {
       };
 
       peerRef.current.ontrack = (e) => {
-        remoteAudioRef.current.srcObject = e.streams[0];
+        if (remoteAudioRef.current) remoteAudioRef.current.srcObject = e.streams[0];
+        if (incomingCall.isVideo && remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0];
       };
 
-      await peerRef.current.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+      await peerRef.current.setRemoteDescription(new window.RTCSessionDescription(incomingCall.offer));
       const answer = await peerRef.current.createAnswer();
       await peerRef.current.setLocalDescription(answer);
       socketRef.current.emit('answer-call', { targetId: incomingCall.from, answer });
@@ -176,11 +227,15 @@ function ChatRoom() {
   // When call is answered, open local audio and add tracks
   const handleCallAnswered = async ({ answer }) => {
     if (peerRef.current) {
-      await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+      await peerRef.current.setRemoteDescription(new window.RTCSessionDescription(answer));
       try {
         if (!localAudioRef.current.srcObject) {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: callType === 'video'
+          });
           localAudioRef.current.srcObject = stream;
+          if (callType === 'video' && localVideoRef.current) localVideoRef.current.srcObject = stream;
           stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
         }
       } catch (err) {
@@ -193,7 +248,7 @@ function ChatRoom() {
   const handleICECandidate = async ({ candidate }) => {
     try {
       if (peerRef.current) {
-        await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        await peerRef.current.addIceCandidate(new window.RTCIceCandidate(candidate));
       }
     } catch (e) {
       console.error('ICE Error:', e);
@@ -212,13 +267,31 @@ function ChatRoom() {
     };
   }, [endCall]);
 
+  // Listen for real-time online users (ALWAYS use latest username from state)
+  useEffect(() => {
+    if (!socketRef.current) return;
+    const handleOnlineUsers = (users) => {
+      const uname = (username || '').trim().toLowerCase();
+      const filtered = users.filter(u => (u || '').trim().toLowerCase() !== uname);
+      setConnectedUsers(filtered);
+    };
+    socketRef.current.on('online-users', handleOnlineUsers);
+    return () => {
+      if (socketRef.current) socketRef.current.off('online-users', handleOnlineUsers);
+    };
+  }, [username]);
+
   // Socket connection and listeners
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const uname = localStorage.getItem('username');
+    const uname = (localStorage.getItem('username') || '').trim();
     const userRole = localStorage.getItem('role');
 
-    if (!token) return navigate('/');
+    // If username is not set, redirect to login
+    if (!token || !uname) {
+      navigate('/');
+      return;
+    }
 
     setUsername(uname);
     setRole(userRole);
@@ -229,7 +302,6 @@ function ChatRoom() {
     socketRef.current.on('connect', () => {
       socketRef.current.emit('register-user', uname);
     });
-    socketRef.current.on('disconnect', () => {});
 
     socketRef.current.on('loadMessages', handleLoadMessages);
     socketRef.current.on('chatMessage', handleIncomingMessage);
@@ -253,11 +325,7 @@ function ChatRoom() {
   const sendMessage = (e) => {
     e.preventDefault();
     if (!message.trim()) return;
-
-    if (!socketRef.current.connected) {
-      return;
-    }
-
+    if (!socketRef.current.connected) return;
     const chatMessage = { sender: username, content: message.trim(), type: 'text' };
     socketRef.current.emit('chatMessage', chatMessage);
     setMessage('');
@@ -293,17 +361,34 @@ function ChatRoom() {
               Admin Panel
             </button>
           )}
-          <button onClick={() => setShowCallOptions(true)} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">📞 Call</button>
+          <button onClick={() => { setShowCallOptions(true); setCallType('audio'); }} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">📞 Call</button>
+          <button onClick={() => { setShowCallOptions(true); setCallType('video'); }} className="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600">🎥 Video Call</button>
           <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">Logout</button>
         </div>
       </div>
 
       {showCallOptions && (
         <div className="bg-white p-4 rounded shadow-md mb-4">
-          <h3 className="text-lg font-bold mb-2">Start Personal Call</h3>
+          <h3 className="text-lg font-bold mb-2">
+            Start Personal {callType === 'video' ? 'Video' : 'Audio'} Call
+          </h3>
+          {connectedUsers.length === 0 && (
+            <div className="text-gray-500">No users online to call.</div>
+          )}
           {connectedUsers.map((user, idx) => (
-            <button key={idx} onClick={() => { startCall(user); setShowCallOptions(false); }} className="block text-left w-full py-1 hover:bg-purple-100">
-              📞 Call {user}
+            <button
+              key={idx}
+              onClick={() => {
+                if (callType === 'video') {
+                  startVideoCall(user);
+                } else {
+                  startCall(user);
+                }
+                setShowCallOptions(false);
+              }}
+              className="block text-left w-full py-1 hover:bg-purple-100"
+            >
+              {callType === 'video' ? '🎥 Video Call' : '📞 Call'} {user}
             </button>
           ))}
         </div>
@@ -354,8 +439,49 @@ function ChatRoom() {
         <div ref={chatEndRef}></div>
       </div>
 
+      {/* Mini video screens at the bottom during video call */}
+      {inCall && callType === 'video' && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: 16,
+            zIndex: 1000,
+            background: 'rgba(255,255,255,0.8)',
+            borderRadius: 12,
+            padding: 8,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: '#555' }}>You</span>
+            <video
+              ref={localVideoRef}
+              autoPlay
+              muted
+              width={160}
+              height={120}
+              style={{ borderRadius: 8, background: '#222' }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: '#555' }}>Remote</span>
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              width={160}
+              height={120}
+              style={{ borderRadius: 8, background: '#222' }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Audio elements for call (keep for both audio and video calls) */}
       <div className="flex gap-4 justify-center mb-4">
-        {/* Audio elements for call */}
         <audio ref={localAudioRef} autoPlay muted={false} hidden={!localAudioRef.current?.srcObject} />
         <audio ref={remoteAudioRef} autoPlay hidden={!remoteAudioRef.current?.srcObject} />
       </div>

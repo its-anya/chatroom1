@@ -3,7 +3,7 @@ const http = require('http');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const socketIO = require('socket.io');
-const path = require('path');
+
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -12,10 +12,10 @@ const Message = require('./models/messages');
 const app = express();
 const server = http.createServer(app);
 
-// Add your deployed frontend URL here for production!
+// Allow both local and deployed frontend
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://chatroom1-6.onrender.com' // <-- replace with your deployed frontend URL
+  'https://chatroom1-6.onrender.com'
 ];
 
 app.use(cors({
@@ -24,20 +24,17 @@ app.use(cors({
 }));
 app.use(express.json());
 
+if (!process.env.MONGO_URI) {
+  console.error('❌ MONGO_URI not set in environment');
+  process.exit(1);
+}
+
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB error:', err));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-
-// Serve static files from the React app (for deployment)
-app.use(express.static(path.join(__dirname, '../client/build')));
-
-// For any route not handled by your APIs, serve the React index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
-});
 
 const io = socketIO(server, {
   cors: {
@@ -49,6 +46,12 @@ const io = socketIO(server, {
 
 const users = new Map();
 
+function emitOnlineUsers() {
+  const online = Array.from(users.keys());
+  console.log('Emitting online users:', online);
+  io.emit('online-users', online);
+}
+
 io.on('connection', (socket) => {
   console.log('🔌 User connected:', socket.id);
 
@@ -56,14 +59,13 @@ io.on('connection', (socket) => {
     users.set(username, socket.id);
     socket.username = username;
     console.log(`✅ Registered user ${username} with socket ID ${socket.id}`);
+    emitOnlineUsers();
   });
 
-  // Send all messages to the newly connected user
   Message.find().sort({ timestamp: 1 }).then(messages => {
     socket.emit('loadMessages', messages);
   });
 
-  // Handle text message
   socket.on('chatMessage', async (msg) => {
     try {
       const message = new Message({
@@ -79,7 +81,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle file message
   socket.on('chatFile', async (msg) => {
     try {
       const message = new Message({
@@ -95,7 +96,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle message deletion
   socket.on('deleteMessage', async (messageId) => {
     try {
       await Message.findByIdAndDelete(messageId);
@@ -105,12 +105,19 @@ io.on('connection', (socket) => {
     }
   });
 
-  // --- Audio Call Signaling Events ---
-  socket.on('call-user', ({ targetId, offer, caller }) => {
+  // --- Audio/Video Call Signaling Events ---
+  socket.on('call-user', ({ targetId, offer, caller, isVideo }) => {
     const targetSocket = users.get(targetId);
-    console.log(`Call requested from ${socket.username} to ${targetId}`);
+    console.log(`Call requested from ${socket.username} to ${targetId} (video: ${!!isVideo})`);
     if (targetSocket) {
-      io.to(targetSocket).emit('incoming-call', { from: socket.username, offer, caller: socket.username });
+      io.to(targetSocket).emit('incoming-call', {
+        from: socket.username,
+        offer,
+        caller: socket.username,
+        isVideo: !!isVideo
+      });
+    } else {
+      console.log(`❌ Target user ${targetId} not found for call`);
     }
   });
 
@@ -128,7 +135,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle call rejection
   socket.on('reject-call', ({ targetId }) => {
     const targetSocket = users.get(targetId);
     if (targetSocket) {
@@ -136,7 +142,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // End call for the other peer only
   socket.on('end-call', ({ targetId }) => {
     const targetSocket = users.get(targetId);
     if (targetSocket) {
@@ -149,6 +154,7 @@ io.on('connection', (socket) => {
       if (id === socket.id) {
         users.delete(user);
         console.log(`❌ ${user} disconnected`);
+        emitOnlineUsers();
         break;
       }
     }
@@ -157,5 +163,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

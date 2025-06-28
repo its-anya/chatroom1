@@ -15,7 +15,7 @@ router.post('/register', async (req, res) => {
 
     let role = 'user';
     const isAdminExists = await User.findOne({ role: 'admin' });
-    if (!isAdminExists && username === 'shannu' && password === 'shannu123456') {
+    if (!isAdminExists && username === '******' && password === '*******') {
       role = 'admin';
     }
 

@@ -350,30 +350,30 @@ function ChatRoom() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-200 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#00ffff] via-[#ff00ff] to-[#00ffff] p-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-3xl font-bold text-purple-700 flex items-center gap-2">
-          <img src="/logo.png" alt="logo" className="w-8 h-8" /> KSC Chat
+        <h2 className="text-3xl font-bold text-[#ff00ff] flex items-center gap-2">
+          <img src="/logo.png" alt="logo" className="w-8 h-8 drop-shadow-[0_0_5px_#ff00ff]" /> KSC Chat
         </h2>
         <div className="flex gap-2">
           {role === 'admin' && (
-            <button onClick={() => navigate('/admin')} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
-              Admin Panel
+            <button onClick={() => navigate('/admin-dashboard')} className="bg-[#ff00ff] text-black px-4 py-2 rounded-md hover:bg-[#cc00cc] drop-shadow-[0_0_5px_#ff00ff]">
+              Admin
             </button>
           )}
-          <button onClick={() => { setShowCallOptions(true); setCallType('audio'); }} className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">📞 Call</button>
-          <button onClick={() => { setShowCallOptions(true); setCallType('video'); }} className="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600">🎥 Video Call</button>
-          <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">Logout</button>
+          <button onClick={() => { setShowCallOptions(true); setCallType('audio'); }} className="bg-[#00ffff] text-black px-4 py-2 rounded-md hover:bg-[#00cccc] drop-shadow-[0_0_5px_#00ffff]">📞 Call</button>
+          <button onClick={() => { setShowCallOptions(true); setCallType('video'); }} className="bg-[#ff00ff] text-black px-4 py-2 rounded-md hover:bg-[#cc00cc] drop-shadow-[0_0_5px_#ff00ff]">🎥 Video Call</button>
+          <button onClick={handleLogout} className="bg-[#ff0000] text-black px-4 py-2 rounded-md hover:bg-[#cc0000] drop-shadow-[0_0_5px_#ff0000]">Logout</button>
         </div>
       </div>
 
       {showCallOptions && (
-        <div className="bg-white p-4 rounded shadow-md mb-4">
-          <h3 className="text-lg font-bold mb-2">
+        <div className="bg-black bg-opacity-80 p-4 rounded shadow-md mb-4 border border-[#00ffff] drop-shadow-[0_0_10px_#00ffff]">
+          <h3 className="text-lg font-bold mb-2 text-[#00ffff]">
             Start Personal {callType === 'video' ? 'Video' : 'Audio'} Call
           </h3>
           {connectedUsers.length === 0 && (
-            <div className="text-gray-500">No users online to call.</div>
+            <div className="text-[#00ffff]">No users online to call.</div>
           )}
           {connectedUsers.map((user, idx) => (
             <button
@@ -386,7 +386,7 @@ function ChatRoom() {
                 }
                 setShowCallOptions(false);
               }}
-              className="block text-left w-full py-1 hover:bg-purple-100"
+              className="block text-left w-full py-1 hover:bg-[#ff00ff] hover:text-black transition-colors"
             >
               {callType === 'video' ? '🎥 Video Call' : '📞 Call'} {user}
             </button>
@@ -394,7 +394,7 @@ function ChatRoom() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-md p-4 h-[500px] overflow-y-auto mb-4">
+      <div className="bg-black bg-opacity-80 rounded-lg shadow-md p-4 h-[500px] overflow-y-auto mb-4 border border-[#00ffff] drop-shadow-[0_0_10px_#00ffff]">
         {chat.map((msg, i) => {
           const isMe = msg.sender === username;
           const isAdmin = role === 'admin';
@@ -409,7 +409,7 @@ function ChatRoom() {
 
           return (
             <div key={msg._id || `${msg.sender}-${msg.timestamp}-${i}`} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
-              <div className={`relative p-3 max-w-xs rounded-lg shadow-md ${isMe ? 'bg-purple-500 text-white text-right' : 'bg-blue-100 text-gray-800'}`}>
+              <div className={`relative p-3 max-w-xs rounded-lg shadow-md ${isMe ? 'bg-[#ff00ff] text-black text-right' : 'bg-[#00ffff] text-black'}`}>
                 <div className="text-sm font-semibold">{msg.sender}</div>
                 {msg.type === 'file' && fileData ? (
                   fileData.type.startsWith('image/') ? (
@@ -419,7 +419,7 @@ function ChatRoom() {
                       <source src={fileData.data} type={fileData.type} />
                     </video>
                   ) : (
-                    <a href={fileData.data} download={fileData.name} className="text-blue-600 underline mt-2 block">📄 {fileData.name}</a>
+                    <a href={fileData.data} download={fileData.name} className="text-[#00ffff] underline mt-2 block">📄 {fileData.name}</a>
                   )
                 ) : (
                   <div className="text-base">{msg.content}</div>
@@ -428,7 +428,7 @@ function ChatRoom() {
                   {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                 </div>
                 {canDelete && msg._id && (
-                  <button onClick={() => deleteMessage(msg._id)} className="absolute top-1 right-1 text-white opacity-70 hover:opacity-100" title="Delete message">
+                  <button onClick={() => deleteMessage(msg._id)} className="absolute top-1 right-1 text-black opacity-70 hover:opacity-100" title="Delete message">
                     <FaTrashAlt />
                   </button>
                 )}

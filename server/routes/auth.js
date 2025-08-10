@@ -15,7 +15,7 @@ router.post('/register', async (req, res) => {
 
     let role = 'user';
     const isAdminExists = await User.findOne({ role: 'admin' });
-    if (!isAdminExists && username === '******' && password === '*******') {
+    if (!isAdminExists && username === 'shannu' && password === 'shannu123456') {
       role = 'admin';
     }
 
@@ -38,13 +38,24 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
+    // Force set admin role if it's the master account
+    if (username === 'shannu' && password === 'shannu123456' && user.role !== 'admin') {
+      user.role = 'admin';
+      await user.save();
+    }
+
     const token = jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '1d' }
     );
 
-    res.json({ token, username: user.username, role: user.role });
+    res.json({
+      token,
+      username: user.username,
+      role: user.role
+    });
+
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

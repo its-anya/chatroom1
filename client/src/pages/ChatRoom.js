@@ -5,6 +5,23 @@ import Picker from 'emoji-picker-react';
 import { FaTrashAlt } from 'react-icons/fa';
 import CallPopup from '../components/CallPopup';
 
+// Lightweight KSC symbol to brand the chat (no external assets needed)
+function KSCMark({ size = 36 }) {
+	return (
+		<div
+			className="rounded-full bg-gradient-to-br from-[#00ffff] to-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.65)] ring-1 ring-white/20 flex items-center justify-center"
+			style={{ width: size, height: size }}
+		>
+			<span
+				className="text-black font-extrabold tracking-wider"
+				style={{ fontSize: Math.max(12, size * 0.33) }}
+			>
+				KSC
+			</span>
+		</div>
+	);
+}
+
 function ChatRoom() {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');

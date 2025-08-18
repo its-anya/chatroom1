@@ -7,19 +7,19 @@ import CallPopup from '../components/CallPopup';
 
 // Lightweight KSC symbol to brand the chat (no external assets needed)
 function KSCMark({ size = 36 }) {
-	return (
-		<div
-			className="rounded-full bg-gradient-to-br from-[#00ffff] to-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.65)] ring-1 ring-white/20 flex items-center justify-center"
-			style={{ width: size, height: size }}
-		>
-			<span
-				className="text-black font-extrabold tracking-wider"
-				style={{ fontSize: Math.max(12, size * 0.33) }}
-			>
-				KSC
-			</span>
-		</div>
-	);
+  return (
+    <div
+      className="rounded-full bg-gradient-to-br from-[#00ffff] to-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.65)] ring-1 ring-white/20 flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      <span
+        className="text-black font-extrabold tracking-wider"
+        style={{ fontSize: Math.max(12, size * 0.33) }}
+      >
+        KSC
+      </span>
+    </div>
+  );
 }
 
 function ChatRoom() {
@@ -367,173 +367,217 @@ function ChatRoom() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#00ffff] via-[#ff00ff] to-[#00ffff] p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-3xl font-bold text-[#ff00ff] flex items-center gap-2">
-          <img src="/logo.png" alt="logo" className="w-8 h-8 drop-shadow-[0_0_5px_#ff00ff]" /> KSC Chat
-        </h2>
-        <div className="flex gap-2">
-          {role === 'admin' && (
-            <button onClick={() => navigate('/admin-dashboard')} className="bg-[#ff00ff] text-black px-4 py-2 rounded-md hover:bg-[#cc00cc] drop-shadow-[0_0_5px_#ff00ff]">
-              Admin
-            </button>
-          )}
-          <button onClick={() => { setShowCallOptions(true); setCallType('audio'); }} className="bg-[#00ffff] text-black px-4 py-2 rounded-md hover:bg-[#00cccc] drop-shadow-[0_0_5px_#00ffff]">📞 Call</button>
-          <button onClick={() => { setShowCallOptions(true); setCallType('video'); }} className="bg-[#ff00ff] text-black px-4 py-2 rounded-md hover:bg-[#cc00cc] drop-shadow-[0_0_5px_#ff00ff]">🎥 Video Call</button>
-          <button onClick={handleLogout} className="bg-[#ff0000] text-black px-4 py-2 rounded-md hover:bg-[#cc0000] drop-shadow-[0_0_5px_#ff0000]">Logout</button>
+    <div className="min-h-screen relative bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1020]">
+      <div className="pointer-events-none absolute inset-0 [background:radial-gradient(60%_60%_at_20%_20%,rgba(255,0,255,0.15),transparent),radial-gradient(40%_40%_at_80%_0%,rgba(0,255,255,0.12),transparent)]" />
+
+      <div className="relative mx-auto max-w-5xl px-4 py-6">
+        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/5">
+            <div className="flex items-center gap-3">
+              <KSCMark size={36} />
+              <div className="leading-tight">
+                <div className="text-white text-xl font-semibold">KSC Chat</div>
+                <div className="text-white/60 text-xs">Secure realtime chat</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {role === 'admin' && (
+                <button
+                  onClick={() => navigate('/admin-dashboard')}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-600 text-white px-4 py-2 text-sm shadow hover:opacity-90 active:scale-[0.98] ring-1 ring-white/10"
+                >
+                  Admin
+                </button>
+              )}
+              <button
+                onClick={() => { setShowCallOptions(true); setCallType('audio'); }}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-400 to-teal-500 text-black px-4 py-2 text-sm shadow ring-1 ring-white/10 hover:opacity-90 active:scale-[0.98]"
+              >
+                📞 Call
+              </button>
+              <button
+                onClick={() => { setShowCallOptions(true); setCallType('video'); }}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 text-black px-4 py-2 text-sm shadow ring-1 ring-white/10 hover:opacity-90 active:scale-[0.98]"
+              >
+                🎥 Video
+              </button>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-600 to-red-600 text-white px-4 py-2 text-sm shadow hover:opacity-90 active:scale-[0.98] ring-1 ring-white/10"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+
+          {/* Chat area */}
+          <div className="h-[60vh] md:h-[65vh] overflow-y-auto p-4 bg-white/5">
+            {chat.map((msg, i) => {
+              const isMe = msg.sender === username;
+              const isAdmin = role === 'admin';
+              const canDelete = isMe || isAdmin;
+              let fileData = null;
+
+              if (msg.type === 'file') {
+                try {
+                  fileData = JSON.parse(msg.content);
+                } catch {}
+              }
+
+              return (
+                <div key={msg._id || `${msg.sender}-${msg.timestamp}-${i}`} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-3`}>
+                  <div
+                    className={`relative max-w-[75%] rounded-2xl px-4 py-3 shadow-md ring-1 ring-white/10 ${
+                      isMe
+                        ? 'bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white'
+                        : 'bg-white/80 text-gray-900'
+                    }`}
+                  >
+                    <div className={`text-xs mb-1 ${isMe ? 'text-white/80' : 'text-gray-600'} font-semibold`}>
+                      {msg.sender}
+                    </div>
+                    {msg.type === 'file' && fileData ? (
+                      fileData.type?.startsWith('image/') ? (
+                        <img src={fileData.data} alt="shared" className="mt-1 rounded-lg max-h-64 object-contain" />
+                      ) : fileData.type?.startsWith('video/') ? (
+                        <video controls className="mt-1 rounded-lg max-h-64">
+                          <source src={fileData.data} type={fileData.type} />
+                        </video>
+                      ) : (
+                        <a
+                          href={fileData.data}
+                          download={fileData.name}
+                          className={`mt-1 block underline ${isMe ? 'text-white' : 'text-blue-700'}`}
+                        >
+                          📄 {fileData.name}
+                        </a>
+                      )
+                    ) : (
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</div>
+                    )}
+                    <div className={`text-[10px] mt-1 ${isMe ? 'text-white/70' : 'text-gray-500'}`}>
+                      {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </div>
+                    {canDelete && msg._id && (
+                      <button
+                        onClick={() => deleteMessage(msg._id)}
+                        className={`absolute -top-2 -right-2 inline-flex items-center justify-center h-7 w-7 rounded-full bg-white/80 text-gray-800 shadow ring-1 ring-black/10 hover:bg-white ${isMe ? '' : ''}`}
+                        title="Delete message"
+                      >
+                        <FaTrashAlt size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={chatEndRef}></div>
+          </div>
+
+          {/* Composer */}
+          <div className="border-t border-white/10 bg-white/5 px-4 py-3">
+            <form onSubmit={sendMessage} className="relative flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-1 rounded-full bg-white/10 backdrop-blur px-3 py-2 ring-1 ring-white/10 shadow-inner">
+                <label htmlFor="fileInput" className="cursor-pointer shrink-0">
+                  <span className="sr-only">Attach file</span>
+                  <img src="/clip-icon.png" alt="Attach" className="w-5 h-5 opacity-80 hover:opacity-100" />
+                  <input id="fileInput" type="file" className="hidden" accept=".pdf,image/*,video/*" onChange={(e) => handleFileUpload(e.target.files[0])} />
+                </label>
+                <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-xl px-1 focus:outline-none">
+                  😊
+                </button>
+                <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 bg-transparent outline-none text-white placeholder-white/50 text-sm"
+                />
+              </div>
+              <button
+                type="submit"
+                className="shrink-0 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white px-5 py-2 text-sm shadow ring-1 ring-white/10 hover:opacity-90 active:scale-[0.98]"
+              >
+                Send
+              </button>
+
+              {showEmojiPicker && (
+                <div className="absolute bottom-14 left-10 z-50 drop-shadow-xl">
+                  <Picker onEmojiClick={onEmojiClick} />
+                </div>
+              )}
+            </form>
+          </div>
         </div>
       </div>
 
+      {/* Call options modal */}
       {showCallOptions && (
-        <div className="bg-black bg-opacity-80 p-4 rounded shadow-md mb-4 border border-[#00ffff] drop-shadow-[0_0_10px_#00ffff]">
-          <h3 className="text-lg font-bold mb-2 text-[#00ffff]">
-            Start Personal {callType === 'video' ? 'Video' : 'Audio'} Call
-          </h3>
-          {connectedUsers.length === 0 && (
-            <div className="text-[#00ffff]">No users online to call.</div>
-          )}
-          {connectedUsers.map((user, idx) => (
-            <button
-              key={idx}
-              onClick={() => {
-                if (callType === 'video') {
-                  startVideoCall(user);
-                } else {
-                  startCall(user);
-                }
-                setShowCallOptions(false);
-              }}
-              className="block text-left w-full py-1 hover:bg-[#ff00ff] hover:text-black transition-colors"
-            >
-              {callType === 'video' ? '🎥 Video Call' : '📞 Call'} {user}
-            </button>
-          ))}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCallOptions(false)} />
+          <div className="relative w-full max-w-md rounded-xl border border-white/10 bg-white/10 p-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-lg font-semibold">Start Personal {callType === 'video' ? 'Video' : 'Audio'} Call</div>
+              <button onClick={() => setShowCallOptions(false)} className="text-white/70 hover:text-white">✖</button>
+            </div>
+            {connectedUsers.length === 0 && (
+              <div className="text-white/80">No users online to call.</div>
+            )}
+            <div className="max-h-80 overflow-y-auto divide-y divide-white/10">
+              {connectedUsers.map((user, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    if (callType === 'video') {
+                      startVideoCall(user);
+                    } else {
+                      startCall(user);
+                    }
+                    setShowCallOptions(false);
+                  }}
+                  className="w-full text-left py-2 px-2 hover:bg:white/10 rounded-md"
+                >
+                  {callType === 'video' ? '🎥 Video Call' : '📞 Call'} {user}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="bg-black bg-opacity-80 rounded-lg shadow-md p-4 h-[500px] overflow-y-auto mb-4 border border-[#00ffff] drop-shadow-[0_0_10px_#00ffff]">
-        {chat.map((msg, i) => {
-          const isMe = msg.sender === username;
-          const isAdmin = role === 'admin';
-          const canDelete = isMe || isAdmin;
-          let fileData = null;
-
-          if (msg.type === 'file') {
-            try {
-              fileData = JSON.parse(msg.content);
-            } catch {}
-          }
-
-          return (
-            <div key={msg._id || `${msg.sender}-${msg.timestamp}-${i}`} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
-              <div className={`relative p-3 max-w-xs rounded-lg shadow-md ${isMe ? 'bg-[#ff00ff] text-black text-right' : 'bg-[#00ffff] text-black'}`}>
-                <div className="text-sm font-semibold">{msg.sender}</div>
-                {msg.type === 'file' && fileData ? (
-                  fileData.type.startsWith('image/') ? (
-                    <img src={fileData.data} alt="shared" className="mt-2 rounded-md" />
-                  ) : fileData.type.startsWith('video/') ? (
-                    <video controls className="mt-2 rounded-md">
-                      <source src={fileData.data} type={fileData.type} />
-                    </video>
-                  ) : (
-                    <a href={fileData.data} download={fileData.name} className="text-[#00ffff] underline mt-2 block">📄 {fileData.name}</a>
-                  )
-                ) : (
-                  <div className="text-base">{msg.content}</div>
-                )}
-                <div className="text-xs mt-1 opacity-70">
-                  {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                </div>
-                {canDelete && msg._id && (
-                  <button onClick={() => deleteMessage(msg._id)} className="absolute top-1 right-1 text-black opacity-70 hover:opacity-100" title="Delete message">
-                    <FaTrashAlt />
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        <div ref={chatEndRef}></div>
-      </div>
-
-      {/* Mini video screens at the bottom during video call */}
+      {/* Mini video screens during video call */}
       {inCall && callType === 'video' && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 20,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            gap: 16,
-            zIndex: 1000,
-            background: 'rgba(255,255,255,0.8)',
-            borderRadius: 12,
-            padding: 8,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#555' }}>You</span>
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              width={160}
-              height={120}
-              style={{ borderRadius: 8, background: '#222' }}
-            />
+        <div className="fixed bottom-4 right-4 z-50 flex gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-xl p-2 shadow-lg">
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] text-white/70 mb-1">You</span>
+            <video ref={localVideoRef} autoPlay muted width={160} height={120} className="rounded-lg bg-black/60" />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#555' }}>Remote</span>
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              width={160}
-              height={120}
-              style={{ borderRadius: 8, background: '#222' }}
-            />
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] text-white/70 mb-1">Remote</span>
+            <video ref={remoteVideoRef} autoPlay width={160} height={120} className="rounded-lg bg-black/60" />
           </div>
         </div>
       )}
 
       {/* Audio elements for call (keep for both audio and video calls) */}
-      <div className="flex gap-4 justify-center mb-4">
-        <audio ref={localAudioRef} autoPlay muted={false} hidden={!localAudioRef.current?.srcObject} />
-        <audio ref={remoteAudioRef} autoPlay hidden={!remoteAudioRef.current?.srcObject} />
+      <div className="sr-only">
+        <audio ref={localAudioRef} autoPlay muted={false} />
+        <audio ref={remoteAudioRef} autoPlay />
       </div>
 
       {inCall && (
         <button
           onClick={endCall}
-          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 mb-4"
+          className="fixed bottom-4 left-4 z-50 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-600 to-red-600 text:white px-4 py-2 text:sm shadow ring-1 ring-white/10 hover:opacity-90 active:scale-[0.98]"
         >
           End Call
         </button>
       )}
 
       {incomingCall && (
-        <CallPopup
-          caller={incomingCall.caller}
-          onAccept={acceptCall}
-          onReject={rejectCall}
-        />
+        <CallPopup caller={incomingCall.caller} onAccept={acceptCall} onReject={rejectCall} />
       )}
-
-      <form onSubmit={sendMessage} className="flex items-center gap-2 relative">
-        <label htmlFor="fileInput" className="cursor-pointer">
-          <img src="/clip-icon.png" alt="Attach" className="w-6 h-6" />
-          <input id="fileInput" type="file" className="hidden" accept=".pdf,image/*,video/*" onChange={(e) => handleFileUpload(e.target.files[0])} />
-        </label>
-        <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="text-xl px-2 focus:outline-none">😊</button>
-        {showEmojiPicker && (
-          <div className="absolute bottom-20 left-12 z-50">
-            <Picker onEmojiClick={onEmojiClick} />
-          </div>
-        )}
-        <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your message..." className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-400" />
-        <button type="submit" className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700">Send</button>
-      </form>
     </div>
   );
 }

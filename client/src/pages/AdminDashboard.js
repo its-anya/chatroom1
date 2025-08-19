@@ -8,7 +8,7 @@ function AdminDashboard() {
   const role = localStorage.getItem('role');
   const navigate = useNavigate();
 
-  const API_BASE = 'https://chatroom1-7e15.onrender.com';
+  const API_BASE = process.env.REACT_APP_API_BASE_URL || window.location.origin;
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -134,4 +134,3 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard;
-

@@ -30,8 +30,8 @@ const server = http.createServer(app);
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://chatroom1-6.onrender.com'
-];
+  process.env.CLIENT_ORIGIN
+].filter(Boolean);
 
 app.use(cors({
   origin: allowedOrigins,
@@ -205,9 +205,14 @@ app.post('/api/otp/resend', async (req, res) => {
 if (authRoutes) app.use('/api/auth', authRoutes);
 if (adminRoutes) app.use('/api/admin', adminRoutes);
 
-// Serve frontend build in production (optional)
-app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
+// Serve frontend build in production (disable cache to avoid stale bundles during debugging)
+app.use(express.static(path.join(__dirname, '..', 'client', 'build'), {
+  maxAge: 0,
+  etag: false,
+  lastModified: false,
+}));
 app.get('*', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
 });
 

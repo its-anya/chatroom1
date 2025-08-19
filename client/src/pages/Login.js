@@ -9,7 +9,7 @@ function Login() {
   const navigate = useNavigate();
 
   // Use .env if provided, otherwise default to deployed API
-  const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://chatroom1-7e15.onrender.com';
+  const API_BASE = process.env.REACT_APP_API_BASE_URL || window.location.origin;
 
   const loginUser = async (e) => {
     e.preventDefault();

@@ -313,7 +313,7 @@ function ChatRoom() {
     setUsername(uname);
     setRole(userRole);
 
-    socketRef.current = io('https://chatroom1-6.onrender.com', { autoConnect: false });
+    socketRef.current = io(process.env.REACT_APP_API_BASE_URL || window.location.origin, { autoConnect: false });
     socketRef.current.connect();
 
     socketRef.current.on('connect', () => {
@@ -367,13 +367,13 @@ function ChatRoom() {
   };
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1020]">
+    <div className="min-h-[100dvh] flex flex-col relative bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1020]">
       <div className="pointer-events-none absolute inset-0 [background:radial-gradient(60%_60%_at_20%_20%,rgba(255,0,255,0.15),transparent),radial-gradient(40%_40%_at_80%_0%,rgba(0,255,255,0.12),transparent)]" />
 
-      <div className="relative mx-auto max-w-5xl px-4 py-6">
-        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl overflow-hidden">
+      <div className="relative mx-auto w-full max-w-none sm:max-w-5xl px-0 sm:px-4 py-0 sm:py-6 flex-1 sm:flex-none">
+        <div className="flex flex-col h-[100dvh] sm:h-[85vh] sm:rounded-2xl sm:border border-white/10 sm:bg-white/5 bg-transparent backdrop-blur-md sm:shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/5">
+          <div className="sticky top-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-white/10 bg-white/10 sm:bg-white/5 backdrop-blur">
             <div className="flex items-center gap-3">
               <KSCMark size={36} />
               <div className="leading-tight">
@@ -412,7 +412,7 @@ function ChatRoom() {
           </div>
 
           {/* Chat area */}
-          <div className="h-[60vh] md:h-[65vh] overflow-y-auto p-4 bg-white/5">
+          <div className="flex-1 sm:h-[65vh] sm:overflow-y-auto overflow-y-auto p-3 sm:p-4 bg-transparent sm:bg-white/5">
             {chat.map((msg, i) => {
               const isMe = msg.sender === username;
               const isAdmin = role === 'admin';
@@ -428,7 +428,7 @@ function ChatRoom() {
               return (
                 <div key={msg._id || `${msg.sender}-${msg.timestamp}-${i}`} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-3`}>
                   <div
-                    className={`relative max-w-[75%] rounded-2xl px-4 py-3 shadow-md ring-1 ring-white/10 ${
+                    className={`relative max-w-[85%] sm:max-w-[75%] md:max-w-[65%] rounded-2xl px-4 py-3 shadow-md ring-1 ring-white/10 ${
                       isMe
                         ? 'bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white'
                         : 'bg-white/80 text-gray-900'
@@ -439,9 +439,9 @@ function ChatRoom() {
                     </div>
                     {msg.type === 'file' && fileData ? (
                       fileData.type?.startsWith('image/') ? (
-                        <img src={fileData.data} alt="shared" className="mt-1 rounded-lg max-h-64 object-contain" />
+                        <img src={fileData.data} alt="shared" className="mt-1 rounded-lg max-h-48 sm:max-h-64 object-contain" />
                       ) : fileData.type?.startsWith('video/') ? (
-                        <video controls className="mt-1 rounded-lg max-h-64">
+                        <video controls className="mt-1 rounded-lg max-h-48 sm:max-h-64">
                           <source src={fileData.data} type={fileData.type} />
                         </video>
                       ) : (
@@ -476,7 +476,7 @@ function ChatRoom() {
           </div>
 
           {/* Composer */}
-          <div className="border-t border-white/10 bg-white/5 px-4 py-3">
+          <div className="sticky bottom-0 sm:sticky sm:bottom-0 z-20 border-t border-white/10 bg-white/10 sm:bg-white/5 backdrop-blur sm:backdrop-blur px-4 py-3">
             <form onSubmit={sendMessage} className="relative flex items-center gap-2">
               <div className="flex items-center gap-2 flex-1 rounded-full bg-white/10 backdrop-blur px-3 py-2 ring-1 ring-white/10 shadow-inner">
                 <label htmlFor="fileInput" className="cursor-pointer shrink-0">
@@ -503,7 +503,7 @@ function ChatRoom() {
               </button>
 
               {showEmojiPicker && (
-                <div className="absolute bottom-14 left-10 z-50 drop-shadow-xl">
+                <div className="absolute bottom-14 left-2 sm:left-10 right-2 z-50 max-w-[calc(100vw-1rem)] overflow-hidden drop-shadow-xl">
                   <Picker onEmojiClick={onEmojiClick} />
                 </div>
               )}
@@ -536,7 +536,7 @@ function ChatRoom() {
                     }
                     setShowCallOptions(false);
                   }}
-                  className="w-full text-left py-2 px-2 hover:bg:white/10 rounded-md"
+                  className="w-full text-left py-2 px-2 hover:bg-white/10 rounded-md"
                 >
                   {callType === 'video' ? '🎥 Video Call' : '📞 Call'} {user}
                 </button>
@@ -548,14 +548,14 @@ function ChatRoom() {
 
       {/* Mini video screens during video call */}
       {inCall && callType === 'video' && (
-        <div className="fixed bottom-4 right-4 z-50 flex gap-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-xl p-2 shadow-lg">
+        <div className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 z-50 flex gap-3 flex-wrap bg-white/10 backdrop-blur-md border border-white/10 rounded-xl p-2 shadow-lg">
           <div className="flex flex-col items-center">
             <span className="text-[10px] text-white/70 mb-1">You</span>
-            <video ref={localVideoRef} autoPlay muted width={160} height={120} className="rounded-lg bg-black/60" />
+            <video ref={localVideoRef} autoPlay muted className="rounded-lg bg-black/60 w-28 h-20 sm:w-40 sm:h-28" />
           </div>
           <div className="flex flex-col items-center">
             <span className="text-[10px] text-white/70 mb-1">Remote</span>
-            <video ref={remoteVideoRef} autoPlay width={160} height={120} className="rounded-lg bg-black/60" />
+            <video ref={remoteVideoRef} autoPlay className="rounded-lg bg-black/60 w-28 h-20 sm:w-40 sm:h-28" />
           </div>
         </div>
       )}
@@ -569,7 +569,7 @@ function ChatRoom() {
       {inCall && (
         <button
           onClick={endCall}
-          className="fixed bottom-4 left-4 z-50 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-600 to-red-600 text:white px-4 py-2 text:sm shadow ring-1 ring-white/10 hover:opacity-90 active:scale-[0.98]"
+          className="fixed bottom-2 left-2 sm:bottom-4 sm:left-4 z-50 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-600 to-red-600 text-white px-4 py-2 text-sm shadow ring-1 ring-white/10 hover:opacity-90 active:scale-[0.98]"
         >
           End Call
         </button>
